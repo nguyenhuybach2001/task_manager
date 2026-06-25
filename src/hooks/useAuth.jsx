@@ -1,5 +1,7 @@
+"use client";
 import { useState, useEffect, createContext, useContext } from 'react';
 import { isFirebaseConfigured } from '../firebase/config';
+import { onAuthChange } from '../firebase/auth';
 
 const AuthContext = createContext(null);
 
@@ -13,16 +15,12 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // Dynamic import to avoid crash when Firebase isn't configured
-    import('../firebase/auth').then(({ onAuthChange }) => {
-      const unsubscribe = onAuthChange((user) => {
-        setUser(user);
-        setLoading(false);
-      });
-      return unsubscribe;
-    }).catch(() => {
+    const unsubscribe = onAuthChange((user) => {
+      setUser(user);
       setLoading(false);
     });
+
+    return unsubscribe;
   }, []);
 
   return (
@@ -39,3 +37,4 @@ export function useAuth() {
   }
   return context;
 }
+

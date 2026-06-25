@@ -37,6 +37,8 @@ export async function createTask(userId, taskData) {
       beforeDeadlineDays: taskData.notification?.beforeDeadlineDays ?? 2,
       beforeStartDays: taskData.notification?.beforeStartDays ?? 1,
       dailyRemindTime: taskData.notification?.dailyRemindTime ?? '09:00',
+      urgentRemindEnabled: taskData.notification?.urgentRemindEnabled ?? false,
+      urgentRemindInterval: taskData.notification?.urgentRemindInterval ?? 30,
     },
     steps: (taskData.steps || []).map((step, index) => ({
       id: crypto.randomUUID(),
@@ -67,7 +69,16 @@ export async function createTask(userId, taskData) {
     task.status = 'in_progress';
   }
 
-  const docRef = await addDoc(collection(db, TASKS_COLLECTION), task);
+  // Timeout to prevent hanging when Firestore rules reject the write
+  const timeoutMs = 15000;
+  const docRef = await Promise.race([
+    addDoc(collection(db, TASKS_COLLECTION), task),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(
+        'Firestore không phản hồi sau 15 giây. Vui lòng kiểm tra Firestore Security Rules trên Firebase Console.'
+      )), timeoutMs)
+    ),
+  ]);
   return { id: docRef.id, ...task };
 }
 

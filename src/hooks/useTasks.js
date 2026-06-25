@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+"use client";
+import { useState, useEffect, createContext, useContext } from 'react';
 import { subscribeToTasks } from '../firebase/firestore';
 import { useAuth } from './useAuth';
 
-export function useTasks() {
+const TasksContext = createContext(null);
+
+export function TasksProvider({ children }) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,5 +40,18 @@ export function useTasks() {
     low: tasks.filter(t => t.priority === 'low').length,
   };
 
-  return { tasks, loading, stats };
+  return (
+    <TasksContext.Provider value={{ tasks, loading, stats }}>
+      {children}
+    </TasksContext.Provider>
+  );
 }
+
+export function useTasks() {
+  const context = useContext(TasksContext);
+  if (!context) {
+    throw new Error('useTasks must be used within TasksProvider');
+  }
+  return context;
+}
+
